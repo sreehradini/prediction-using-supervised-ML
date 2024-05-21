@@ -1,0 +1,118 @@
+# Import necessary libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+
+# Load the dataset
+data = pd.read_csv('retail_data.csv')
+
+# Inspect the dataset
+print("First few rows of the dataset:")
+print(data.head())
+
+print("\nSummary of the dataset:")
+print(data.describe())
+
+print("\nInfo about the dataset:")
+print(data.info())
+
+# Clean the dataset
+# Check for missing values
+missing_values = data.isnull().sum()
+print("\nMissing values in each column:")
+print(missing_values)
+
+# Fill or drop missing values
+data = data.dropna()  # Example: drop rows with missing values
+
+# Data type conversion if necessary
+# Example: Convert date to datetime
+data['date'] = pd.to_datetime(data['date'])
+
+# Analyze data types
+print("\nData types after conversion:")
+print(data.dtypes)
+
+# Univariate Analysis
+# Distribution of numerical features
+plt.figure(figsize=(10, 6))
+sns.histplot(data['quantity'], kde=True)
+plt.title('Distribution of Quantity')
+plt.xlabel('Quantity')
+plt.ylabel('Frequency')
+plt.show()
+
+plt.figure(figsize=(10, 6))
+sns.histplot(data['price'], kde=True)
+plt.title('Distribution of Price')
+plt.xlabel('Price')
+plt.ylabel('Frequency')
+plt.show()
+
+# Distribution of categorical features
+plt.figure(figsize=(12, 6))
+sns.countplot(x='product_category', data=data)
+plt.title('Count of Transactions per Product Category')
+plt.xlabel('Product Category')
+plt.ylabel('Count')
+plt.xticks(rotation=90)
+plt.show()
+
+# Bivariate Analysis
+# Quantity vs Price
+plt.figure(figsize=(10, 6))
+sns.scatterplot(x='price', y='quantity', data=data)
+plt.title('Quantity vs Price')
+plt.xlabel('Price')
+plt.ylabel('Quantity')
+plt.show()
+
+# Product Category vs Price
+plt.figure(figsize=(12, 6))
+sns.boxplot(x='product_category', y='price', data=data)
+plt.title('Product Category vs Price')
+plt.xlabel('Product Category')
+plt.ylabel('Price')
+plt.xticks(rotation=90)
+plt.show()
+
+# Multivariate Analysis
+# Correlation Matrix
+plt.figure(figsize=(10, 8))
+corr_matrix = data.corr()
+sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', linewidths=0.5)
+plt.title('Correlation Matrix')
+plt.show()
+
+# Time Series Analysis
+# Sales Over Time
+data['month'] = data['date'].dt.to_period('M')
+monthly_sales = data.groupby('month')['price'].sum().reset_index()
+
+plt.figure(figsize=(14, 7))
+sns.lineplot(x='month', y='price', data=monthly_sales)
+plt.title('Monthly Sales Over Time')
+plt.xlabel('Month')
+plt.ylabel('Total Sales')
+plt.xticks(rotation=45)
+plt.show()
+
+# Customer Segmentation
+# Total spend per customer
+customer_spend = data.groupby('customer_id')['price'].sum().reset_index().sort_values(by='price', ascending=False)
+
+plt.figure(figsize=(12, 6))
+sns.barplot(x='customer_id', y='price', data=customer_spend.head(10))
+plt.title('Top 10 Customers by Total Spend')
+plt.xlabel('Customer ID')
+plt.ylabel('Total Spend')
+plt.xticks(rotation=90)
+plt.show()
+
+# Insights
+print("\nTop 5 most popular product categories:")
+print(data['product_category'].value_counts().head(5))
+
+print("\nTop 5 highest spending customers:")
+print(customer_spend.head(5))
