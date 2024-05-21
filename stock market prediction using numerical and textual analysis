@@ -1,0 +1,78 @@
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+import yfinance as yf
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Load numerical data (historical stock prices)
+stock_data = yf.download('AAPL', start='2020-01-01', end='2023-01-01')
+
+# Load textual data (news headlines)
+# Assuming you have a CSV file with columns 'date' and 'headline'
+news_data = pd.read_csv('news_headlines.csv', parse_dates=['date'])
+
+# Preprocess numerical data
+stock_data['Target'] = np.where(stock_data['Close'].shift(-1) > stock_data['Close'], 1, 0)
+stock_data.dropna(inplace=True)
+numerical_features = stock_data[['Close', 'Volume']].copy()
+numerical_target = stock_data['Target'].copy()
+scaler = StandardScaler()
+numerical_features_scaled = scaler.fit_transform(numerical_features)
+
+# Preprocess textual data
+news_data_aggregated = news_data.groupby('date')['headline'].apply(' '.join).reset_index()
+combined_data = pd.merge(stock_data.reset_index(), news_data_aggregated, left_on='Date', right_on='date', how='inner')
+combined_data['headline'] = combined_data['headline'].fillna('')
+target = combined_data['Target']
+vectorizer = TfidfVectorizer(max_features=5000)
+textual_features = vectorizer.fit_transform(combined_data['headline'])
+from scipy.sparse import hstack
+features = hstack([numerical_features_scaled, textual_features])
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
+
+# Train a Random Forest Classifier
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Make predictions
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy:.2f}")
+
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+
+# Confusion Matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+
+plt.figure(figsize=(8, 6))
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=['Down', 'Up'], yticklabels=['Down', 'Up'])
+plt.title('Confusion Matrix')
+plt.xlabel('Predicted')
+plt.ylabel('True')
+plt.show()
+
+# Example prediction on new data
+new_data = {
+    'Close': [150.0],
+    'Volume': [1000000],
+    'headline': ['Apple releases new iPhone with groundbreaking features']
+}
+
+new_numerical_features = scaler.transform(pd.DataFrame(new_data[['Close', 'Volume']]))
+new_textual_features = vectorizer.transform(new_data['headline'])
+
+new_features = hstack([new_numerical_features, new_textual_features])
+
+predicted_movement = model.predict(new_features)
+print(f"Predicted movement: {'Up' if predicted_movement[0] == 1 else 'Down'}")
