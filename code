@@ -1,0 +1,76 @@
+# Import necessary libraries
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error, r2_score
+import warnings
+
+# Suppress warnings for cleaner output
+warnings.filterwarnings('ignore')
+
+# Load dataset (example with hypothetical data)
+data = pd.read_csv('house_prices.csv')
+
+# Feature selection
+features = data[['square_feet', 'num_bedrooms', 'num_bathrooms']]
+target = data['price']
+
+# Split data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
+
+# Data preprocessing: Standardize features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Initialize models
+models = {
+    'LinearRegression': LinearRegression(),
+    'Ridge': Ridge(),
+    'Lasso': Lasso()
+}
+
+# Hyperparameter tuning using GridSearchCV
+param_grid = {
+    'Ridge': {'alpha': [0.1, 1, 10, 100]},
+    'Lasso': {'alpha': [0.1, 1, 10, 100]}
+}
+
+best_models = {}
+
+for model_name, model in models.items():
+    if model_name in param_grid:
+        grid_search = GridSearchCV(model, param_grid[model_name], cv=5, scoring='neg_mean_squared_error')
+        grid_search.fit(X_train_scaled, y_train)
+        best_models[model_name] = grid_search.best_estimator_
+        print(f"Best parameters for {model_name}: {grid_search.best_params_}")
+    else:
+        model.fit(X_train_scaled, y_train)
+        best_models[model_name] = model
+
+# Evaluate models
+for model_name, model in best_models.items():
+    # Cross-validation
+    cv_scores = cross_val_score(model, X_train_scaled, y_train, cv=5, scoring='neg_mean_squared_error')
+    print(f"{model_name} - Cross-validated MSE: {-np.mean(cv_scores):.2f}")
+
+    # Predictions
+    y_pred = model.predict(X_test_scaled)
+
+    # Evaluation metrics
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    print(f"{model_name} - Test MSE: {mse:.2f}")
+    print(f"{model_name} - Test R^2: {r2:.2f}")
+
+# Example prediction on new data
+new_house = np.array([[1500, 3, 2]])  # 1500 sq ft, 3 bedrooms, 2 bathrooms
+new_house_scaled = scaler.transform(new_house)
+
+# Use the best performing model for prediction
+best_model_name = max(best_models, key=lambda name: cross_val_score(best_models[name], X_train_scaled, y_train, cv=5, scoring='r2').mean())
+best_model = best_models[best_model_name]
+predicted_price = best_model.predict(new_house_scaled)
+print(f"Predicted price for new house using {best_model_name}: ${predicted_price[0]:.2f}")
