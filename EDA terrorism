@@ -1,0 +1,116 @@
+# Import necessary libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the dataset
+data = pd.read_csv('global_terrorism.csv', encoding='ISO-8859-1')
+
+# Inspect the dataset
+print("First few rows of the dataset:")
+print(data.head())
+
+print("\nSummary of the dataset:")
+print(data.describe(include='all'))
+
+print("\nInfo about the dataset:")
+print(data.info())
+
+# Clean the dataset
+# Check for missing values
+missing_values = data.isnull().sum()
+print("\nMissing values in each column:")
+print(missing_values)
+
+# Drop columns with a high percentage of missing values or irrelevant columns
+data = data.drop(columns=['weapdetail', 'propcomment', 'addnotes'])
+
+# Fill missing values if necessary (example: filling with mode or median)
+data['nkill'] = data['nkill'].fillna(data['nkill'].median())
+data['nwound'] = data['nwound'].fillna(data['nwound'].median())
+
+# Data type conversion if necessary
+# Example: Convert date columns to datetime
+data['iyear'] = pd.to_datetime(data['iyear'], format='%Y')
+
+# Analyze data types
+print("\nData types after conversion:")
+print(data.dtypes)
+
+# Univariate Analysis
+# Distribution of numerical features
+plt.figure(figsize=(10, 6))
+sns.histplot(data['nkill'], kde=True, bins=30)
+plt.title('Distribution of Number of Kills')
+plt.xlabel('Number of Kills')
+plt.ylabel('Frequency')
+plt.show()
+
+plt.figure(figsize=(10, 6))
+sns.histplot(data['nwound'], kde=True, bins=30)
+plt.title('Distribution of Number of Wounded')
+plt.xlabel('Number of Wounded')
+plt.ylabel('Frequency')
+plt.show()
+
+# Distribution of categorical features
+plt.figure(figsize=(12, 6))
+sns.countplot(y='country_txt', data=data, order=data['country_txt'].value_counts().iloc[:10].index)
+plt.title('Top 10 Countries by Number of Attacks')
+plt.xlabel('Number of Attacks')
+plt.ylabel('Country')
+plt.show()
+
+plt.figure(figsize=(12, 6))
+sns.countplot(y='attacktype1_txt', data=data, order=data['attacktype1_txt'].value_counts().index)
+plt.title('Attack Types')
+plt.xlabel('Count')
+plt.ylabel('Attack Type')
+plt.show()
+
+# Bivariate Analysis
+# Number of Kills vs Number of Wounded
+plt.figure(figsize=(10, 6))
+sns.scatterplot(x='nkill', y='nwound', data=data)
+plt.title('Number of Kills vs Number of Wounded')
+plt.xlabel('Number of Kills')
+plt.ylabel('Number of Wounded')
+plt.show()
+
+# Attack Type vs Number of Kills
+plt.figure(figsize=(12, 6))
+sns.boxplot(x='nkill', y='attacktype1_txt', data=data)
+plt.title('Attack Type vs Number of Kills')
+plt.xlabel('Number of Kills')
+plt.ylabel('Attack Type')
+plt.show()
+
+# Multivariate Analysis
+# Correlation Matrix
+plt.figure(figsize=(10, 8))
+corr_matrix = data[['nkill', 'nwound']].corr()
+sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', linewidths=0.5)
+plt.title('Correlation Matrix')
+plt.show()
+
+# Time Series Analysis
+# Number of Attacks Over Time
+attacks_per_year = data.groupby(data['iyear'].dt.year).size().reset_index(name='counts')
+
+plt.figure(figsize=(14, 7))
+sns.lineplot(x='iyear', y='counts', data=attacks_per_year)
+plt.title('Number of Attacks Over Time')
+plt.xlabel('Year')
+plt.ylabel('Number of Attacks')
+plt.xticks(rotation=45)
+plt.show()
+
+# Insights
+print("\nTop 5 countries by number of attacks:")
+print(data['country_txt'].value_counts().head(5))
+
+print("\nTop 5 attack types:")
+print(data['attacktype1_txt'].value_counts().head(5))
+
+print("\nTop 5 terrorist groups:")
+print(data['gname'].value_counts().head(5))
