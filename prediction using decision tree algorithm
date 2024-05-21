@@ -1,0 +1,63 @@
+# Import necessary libraries
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Load the dataset
+from sklearn.datasets import load_iris
+iris = load_iris()
+
+# Convert to DataFrame
+data = pd.DataFrame(data=iris.data, columns=iris.feature_names)
+data['species'] = iris.target
+
+# Inspect the dataset
+print("First few rows of the dataset:")
+print(data.head())
+
+print("\nSummary of the dataset:")
+print(data.describe())
+
+print("\nInfo about the dataset:")
+print(data.info())
+
+# Preprocess the Data
+# No missing values in the iris dataset, but if there were, we could handle them here.
+
+# Split the Data
+X = data.drop(columns=['species'])
+y = data['species']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train the Decision Tree Model
+model = DecisionTreeClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+# Make Predictions
+y_pred = model.predict(X_test)
+
+# Evaluate the Model
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy:.2f}")
+
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred, target_names=iris.target_names))
+
+# Confusion Matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+
+plt.figure(figsize=(8, 6))
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=iris.target_names, yticklabels=iris.target_names)
+plt.title('Confusion Matrix')
+plt.xlabel('Predicted')
+plt.ylabel('True')
+plt.show()
+
+# Example Prediction on New Data
+new_data = [[5.1, 3.5, 1.4, 0.2]]  # Example data
+predicted_species = model.predict(new_data)
+print(f"Predicted species: {iris.target_names[predicted_species][0]}")
